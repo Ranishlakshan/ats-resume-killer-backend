@@ -18,7 +18,7 @@ import java.util.Map;
 public class KeywordExtractionService {
 
     private static final String OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
-    private static final String OPENAI_API_KEY = "kk"; // Store securely
+    private static final String OPENAI_API_KEY = "key"; // Store securely
 
     private final WebClient webClient = WebClient.builder()
             .baseUrl(OPENAI_API_URL)
@@ -42,7 +42,7 @@ public class KeywordExtractionService {
             userMessage.put("role", "user");
             userMessage.put("content",
                     "Extract folllowing keywords and phrases from this job description and resume as much as you can but meaningful." +
-                            "name with key name,if no name then 'nodata' ," +
+                            "name with key name,if no name then 'found nothing' ," +
                             "structure of the resume. use keyword 'structure' : one of words(good,bad,normal)," +
                             "" +
                             "Only job related words. Use key 'keywordsjd'." +
@@ -60,10 +60,10 @@ public class KeywordExtractionService {
                             "Total matching hard skills count from Resume to job description: 'noofHardskillsre'.\n" +
                             "Find all the matching job specific words from both job description & resume (all skills" +
                             ",soft skills,hard skills,keywords).dont add if not available that word in job description or resume: 'matchingjdre'.\n" +
-                            "Extract address if possible, else return 'nodata': 'address'.\n" +
-                            "Extract email: 'email' if no data then 'nodata'.\n" +
-                            "Extract LinkedIn URL: 'linkedin' if no data then 'nodata'.\n" +
-                            "Extract phone number: 'phone' if no data then 'nodata'.\n" +
+                            "Extract address if possible, else return 'found nothing': 'address'.\n" +
+                            "Extract email: 'email' if no data then 'found nothing'.\n" +
+                            "Extract LinkedIn URL: 'linkedin' if no data then 'found nothing'.\n" +
+                            "Extract phone number: 'phone' if no data then 'found nothing'.\n" +
                             "Extract word count from Resume: 'wordcount'" +
                             "" +
                             "match and give overall keyword matching score .use key overallScore\n" +
