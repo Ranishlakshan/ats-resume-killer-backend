@@ -14,7 +14,7 @@ import java.util.Map;
 public class CoverLetterGenerationService {
 
     private static final String OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
-    private static final String OPENAI_API_KEY = "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"; // Store securely
+    private static final String OPENAI_API_KEY = "key"; // Store securely
 
     private final WebClient webClient = WebClient.builder()
             .baseUrl(OPENAI_API_URL)
