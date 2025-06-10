@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -28,9 +30,17 @@ public class UserInputController {
             @RequestPart("resume") MultipartFile resumeFile,
             @RequestPart("jobDescription") String jobDescription) throws IOException {
 
-        // Call the service method that returns Mono<Map<String, Object>>
         return userInputService.processUserInput(resumeFile, jobDescription)
-                .map(ResponseEntity::ok) // Wrap in ResponseEntity with status 200 OK
-                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null))); // Handle errors gracefully
+                .timeout(Duration.ofSeconds(65)) // <-- Add timeout here!
+                .map(ResponseEntity::ok)
+                .onErrorResume(e -> {
+                    Map<String, Object> errorBody = new HashMap<>();
+                    String message = (e instanceof java.util.concurrent.TimeoutException)
+                            ? "Request timed out (waited >65s for response)."
+                            : (e.getMessage() != null ? e.getMessage() : "Unknown error");
+                    errorBody.put("error", message);
+                    e.printStackTrace();
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorBody));
+                });
     }
 }

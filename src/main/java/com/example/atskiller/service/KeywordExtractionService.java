@@ -12,6 +12,11 @@ import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import reactor.netty.http.client.HttpClient;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import java.time.Duration;
+
+
 import java.util.Map;
 
 @Service
@@ -24,7 +29,14 @@ public class KeywordExtractionService {
             .baseUrl(OPENAI_API_URL)
             .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + OPENAI_API_KEY)
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .clientConnector(
+                    new ReactorClientHttpConnector(
+                            HttpClient.create()
+                                    .responseTimeout(Duration.ofSeconds(60)) // Set timeout to 60 seconds
+                    )
+            )
             .build();
+
 
     public Mono<JSONObject> getKeywordsFromJobDescription(String jobDescription, String extractedText) {
         try {
