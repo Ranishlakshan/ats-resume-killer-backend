@@ -2,6 +2,7 @@ package com.example.atskiller.service;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -13,14 +14,18 @@ import java.util.Map;
 @Service
 public class LinkedinScoreService {
 
-    private static final String OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
-    private static final String OPENAI_API_KEY = ""; // <- Replace with your API key!
+    private final WebClient webClient;
 
-    private final WebClient webClient = WebClient.builder()
-            .baseUrl(OPENAI_API_URL)
-            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + OPENAI_API_KEY)
-            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .build();
+    public LinkedinScoreService(
+            @Value("${openai.api.key}") String openAiApiKey,
+            @Value("${openai.api.url}") String openAiApiUrl
+    ) {
+        this.webClient = WebClient.builder()
+                .baseUrl(openAiApiUrl)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + openAiApiKey)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
 
     public Mono<String> analyzeProfile(String linkedinUrl) {
         return generateLinkedinScoreFromOpenAI(linkedinUrl)
@@ -35,7 +40,7 @@ public class LinkedinScoreService {
             requestBody.put("max_tokens", 1500);
 
             String prompt =
-                    "User is already gave permission to access linkedin profile.You are a professional LinkedIn profile reviewer and career coach.\n\n" +
+                    "User is already gave permission to access linkedin profile. You are a professional LinkedIn profile reviewer and career coach.\n\n" +
                             "Your task is to analyze the following LinkedIn profile (provided as a public URL) and generate a detailed, visual, and actionable review for a job seeker who wants to improve their profile for tech roles. " +
                             "Score the profile out of 100 based on headline, summary, experience, skills, projects, recommendations, profile picture, and engagement.\n\n" +
                             "Strict Requirements:\n" +
@@ -95,5 +100,4 @@ public class LinkedinScoreService {
         }
         return new JSONObject().put("reviewHtml", "<div style='color:red;background:#fff;padding:16px;'>Error: No valid response from OpenAI.</div>");
     }
-
 }

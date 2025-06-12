@@ -2,53 +2,46 @@ package com.example.atskiller.service;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.http.HttpEntity;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import reactor.netty.http.client.HttpClient;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import java.time.Duration;
-
-
 import java.util.Map;
 
 @Service
 public class KeywordExtractionService {
 
-    private static final String OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
-    private static final String OPENAI_API_KEY = "key"; // Store securely
+    private final WebClient webClient;
 
-    private final WebClient webClient = WebClient.builder()
-            .baseUrl(OPENAI_API_URL)
-            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + OPENAI_API_KEY)
-            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .clientConnector(
-                    new ReactorClientHttpConnector(
-                            HttpClient.create()
-                                    .responseTimeout(Duration.ofSeconds(60)) // Set timeout to 60 seconds
-                    )
-            )
-            .build();
-
+    public KeywordExtractionService(
+            @Value("${openai.api.key}") String openAiApiKey,
+            @Value("${openai.api.url}") String openAiApiUrl
+    ) {
+        this.webClient = WebClient.builder()
+                .baseUrl(openAiApiUrl)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + openAiApiKey)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .clientConnector(
+                        new ReactorClientHttpConnector(
+                                HttpClient.create()
+                                        .responseTimeout(Duration.ofSeconds(60))
+                        )
+                )
+                .build();
+    }
 
     public Mono<JSONObject> getKeywordsFromJobDescription(String jobDescription, String extractedText) {
         try {
-            RestTemplate restTemplate = new RestTemplate();
-
-            // Construct request body
             JSONObject requestBody = new JSONObject();
             requestBody.put("model", "gpt-4-turbo");
             requestBody.put("max_tokens", 4000);
-            //requestBody.put("stream", true);
 
-            // Construct messages array
             JSONArray messages = new JSONArray();
             JSONObject userMessage = new JSONObject();
             userMessage.put("role", "user");
@@ -93,12 +86,11 @@ public class KeywordExtractionService {
             messages.put(userMessage);
             requestBody.put("messages", messages);
 
-            // Send request and handle response
             return webClient.post()
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(requestBody.toString())
                     .retrieve()
-                    .bodyToMono(Map.class) // Convert response to a Map
+                    .bodyToMono(Map.class)
                     .map(this::parseResponse);
 
         } catch (Exception e) {
@@ -108,7 +100,6 @@ public class KeywordExtractionService {
     }
 
     private JSONObject parseResponse(Map<String, Object> response) {
-        // Print raw response for debugging
         System.out.println("Raw OpenAI response: " + response);
 
         if (response != null && response.containsKey("choices")) {
@@ -138,7 +129,6 @@ public class KeywordExtractionService {
                                 jsonObject.put("hardskillsjd", new JSONArray()); // Default to empty array
                             }
                         } else if (!(hardskillsjdObj instanceof JSONArray)) {
-                            // If it's not an array, replace it with an empty array
                             jsonObject.put("hardskillsjd", new JSONArray());
                         }
                     }
@@ -152,6 +142,4 @@ public class KeywordExtractionService {
         }
         return new JSONObject().put("error", "No valid JSON response found");
     }
-
-
 }

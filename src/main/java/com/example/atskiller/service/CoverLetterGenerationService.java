@@ -2,6 +2,7 @@ package com.example.atskiller.service;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -13,23 +14,25 @@ import java.util.Map;
 @Service
 public class CoverLetterGenerationService {
 
-    private static final String OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
-    private static final String OPENAI_API_KEY = "key"; // Store securely
+    private final WebClient webClient;
 
-    private final WebClient webClient = WebClient.builder()
-            .baseUrl(OPENAI_API_URL)
-            .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + OPENAI_API_KEY)
-            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .build();
+    public CoverLetterGenerationService(
+            @Value("${openai.api.key}") String openAiApiKey,
+            @Value("${openai.api.url}") String openAiApiUrl
+    ) {
+        this.webClient = WebClient.builder()
+                .baseUrl(openAiApiUrl)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + openAiApiKey)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
 
     public Mono<JSONObject> generateCoverLetterFromOpenAI(String jobDescription, String resumeText) {
         try {
-            // Construct request body
             JSONObject requestBody = new JSONObject();
             requestBody.put("model", "gpt-4-turbo");
             requestBody.put("max_tokens", 1500);
 
-            // Prompt: Ask for a professional cover letter only
             JSONArray messages = new JSONArray();
             JSONObject userMessage = new JSONObject();
             userMessage.put("role", "user");
@@ -42,7 +45,6 @@ public class CoverLetterGenerationService {
             messages.put(userMessage);
             requestBody.put("messages", messages);
 
-            // Send request to OpenAI
             return webClient.post()
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(requestBody.toString())
@@ -57,7 +59,6 @@ public class CoverLetterGenerationService {
     }
 
     private JSONObject parseResponse(Map<String, Object> response) {
-        // Debug
         System.out.println("Raw OpenAI Cover Letter response: " + response);
 
         if (response != null && response.containsKey("choices")) {
@@ -66,10 +67,8 @@ public class CoverLetterGenerationService {
 
             if (message.containsKey("content")) {
                 String jsonResponse = (String) message.get("content");
-
-                // Ensure it's valid JSON (remove backticks if needed)
+                // Clean up for valid JSON if needed
                 jsonResponse = jsonResponse.replaceAll("```json", "").replaceAll("```", "").trim();
-
                 try {
                     return new JSONObject(jsonResponse);
                 } catch (Exception e) {
