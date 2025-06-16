@@ -15,7 +15,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
-//@CrossOrigin(origins = "http://localhost:5173") // Allow requests from React app
+//@CrossOrigin(origins = "http://localhost:5173") // Optional if CORS config is global
 public class UserInputController {
 
     private final UserInputService userInputService;
@@ -31,15 +31,28 @@ public class UserInputController {
             @RequestPart("jobDescription") String jobDescription) throws IOException {
 
         return userInputService.processUserInput(resumeFile, jobDescription)
-                .timeout(Duration.ofSeconds(65)) // <-- Add timeout here!
+                .timeout(Duration.ofSeconds(65)) // How long to wait for async processing
                 .map(ResponseEntity::ok)
                 .onErrorResume(e -> {
                     Map<String, Object> errorBody = new HashMap<>();
-                    String message = (e instanceof java.util.concurrent.TimeoutException)
-                            ? "Request timed out (waited >65s for response)."
-                            : (e.getMessage() != null ? e.getMessage() : "Unknown error");
+
+                    String message;
+                    if (e instanceof java.util.concurrent.TimeoutException) {
+                        message = "Request timed out (waited >65s for response).";
+                    } else if (e != null && e.getMessage() != null) {
+                        message = e.getMessage();
+                    } else {
+                        message = "Unexpected server error.";
+                    }
+
                     errorBody.put("error", message);
-                    e.printStackTrace();
+
+                    // Print full stack trace only if exception exists
+                    if (e != null) {
+                        System.err.println("Exception occurred during async processing:");
+                        e.printStackTrace();
+                    }
+
                     return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorBody));
                 });
     }
