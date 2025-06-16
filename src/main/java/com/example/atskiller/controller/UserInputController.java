@@ -15,7 +15,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "http://localhost:5173") // Allow requests from React app
+//@CrossOrigin(origins = "http://localhost:5173") // Allow requests from React app
 public class UserInputController {
 
     private final UserInputService userInputService;
