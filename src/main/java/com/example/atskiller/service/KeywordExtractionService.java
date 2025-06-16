@@ -8,11 +8,14 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.tcp.TcpClient;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+
 import java.time.Duration;
 import java.util.Map;
+
+import io.netty.channel.ChannelOption;
 
 @Service
 public class KeywordExtractionService {
@@ -23,16 +26,20 @@ public class KeywordExtractionService {
             @Value("${openai.api.key}") String openAiApiKey,
             @Value("${openai.api.url}") String openAiApiUrl
     ) {
+        // Step 1: Setup TCP connection timeout
+        TcpClient tcpClient = TcpClient.create()
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000); // 10s connect timeout
+
+        // Step 2: Wrap into HttpClient and set response timeout
+        HttpClient httpClient = HttpClient.from(tcpClient)
+                .responseTimeout(Duration.ofSeconds(65)); // Wait up to 65s for full response
+
+        // Step 3: Build WebClient
         this.webClient = WebClient.builder()
                 .baseUrl(openAiApiUrl)
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + openAiApiKey)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .clientConnector(
-                        new ReactorClientHttpConnector(
-                                HttpClient.create()
-                                        .responseTimeout(Duration.ofSeconds(60))
-                        )
-                )
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
     }
 
@@ -120,13 +127,12 @@ public class KeywordExtractionService {
                         Object hardskillsjdObj = jsonObject.get("hardskillsjd");
 
                         if (hardskillsjdObj instanceof String) {
-                            // If it's a string, try to parse it into an array
                             try {
                                 JSONArray hardskillsArray = new JSONArray((String) hardskillsjdObj);
                                 jsonObject.put("hardskillsjd", hardskillsArray);
                             } catch (Exception e) {
                                 System.err.println("Invalid hardskillsjd format: " + hardskillsjdObj);
-                                jsonObject.put("hardskillsjd", new JSONArray()); // Default to empty array
+                                jsonObject.put("hardskillsjd", new JSONArray());
                             }
                         } else if (!(hardskillsjdObj instanceof JSONArray)) {
                             jsonObject.put("hardskillsjd", new JSONArray());
