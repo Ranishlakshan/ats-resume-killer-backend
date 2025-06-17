@@ -25,6 +25,11 @@ public class UserInputController {
         this.userInputService = userInputService;
     }
 
+    @GetMapping("/health")
+    public ResponseEntity<String> healthCheck() {
+        return ResponseEntity.ok("OK");
+    }
+
     @PostMapping(value = "/scan", consumes = {"multipart/form-data"})
     public Mono<ResponseEntity<Map<String, Object>>> processUserInput(
             @RequestPart("resume") MultipartFile resumeFile,
